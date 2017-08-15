@@ -1,4 +1,4 @@
-function J = runbio_jac(t,z,funs,u,mu,lambda)
+function J = dynamicsbio_jac(t,z,funs,u,mu,lambda)
 %output Jacobian matrix for system with constant input, u
 
 %defaults

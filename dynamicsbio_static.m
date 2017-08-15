@@ -1,4 +1,4 @@
-function [dz,Jout] = runbio_static(~,z,funs,u,mu,lambda)
+function [dz,Jout] = dynamicsbio_static(~,z,funs,u,mu,lambda)
 %simulate bio process with Hill function kinetics (simplified) with
 %constant input, u
 

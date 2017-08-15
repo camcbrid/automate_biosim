@@ -1,13 +1,4 @@
-function [dz,Jout] = dynamicsbio_sweep(t,z,funs,umax,tfinal,mu,lambda)
-%sweep through 
-
-%defaults
-if nargin < 5
-    mu = 1;         %turn on production resource sharing [0,1]
-    if nargin < 6
-        lambda = 1; %turn on degradation resource sharing [0,1]
-    end
-end
+function [dz,Jout] = dynamicsbio_mulambda(t,z,funs,u,tfinal)
 
 %dynamics functions
 h = funs.h;     %production
@@ -15,15 +6,11 @@ a = funs.a;     %production resource sharing
 g = funs.g;     %degradation with resource sharing
 L = funs.L;     %dilution matrix
 
-%input sweep (triangle wave input)
-if t < tfinal/2
-    u = umax*2*t/tfinal;
-else
-    u = 2*umax*(1 - t/tfinal);
-end
+mu = t/tfinal;         %turn on production resource sharing [0,1]
+lambda = t/tfinal;     %turn on degradation resource sharing [0,1]
 
 %dynamics
-dz = h(z,u).*((a(z,u) - ones(size(z)))*mu + ones(size(z))) + lambda*g(z) - L*z;
+dz = h(z,u).*((a(z,u)-ones(size(z)))*mu+ones(size(z))) + lambda*g(z) - L*z;
 
 %Jacobian
 if nargout == 2 && all(isfield(funs,{'hJ','aJ','gJ'}))

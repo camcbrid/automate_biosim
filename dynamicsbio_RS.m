@@ -1,11 +1,11 @@
-function [dz,Jout] = dynamicsbio_sweep(t,z,funs,umax,tfinal,mu,lambda)
-%sweep through 
+function [dz,Jout] = dynamicsbio_RS(t,z,funs,umax,tfinal,mu,lambda,RSnum)
+%sweep through
 
 %defaults
 if nargin < 5
     mu = 1;         %turn on production resource sharing [0,1]
     if nargin < 6
-        lambda = 1; %turn on degradation resource sharing [0,1]
+        lambda = 0; %turn on degradation resource sharing [0,1]
     end
 end
 
