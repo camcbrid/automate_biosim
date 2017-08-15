@@ -25,27 +25,27 @@ p.s = [2,4,2,4];        %coopertivity (m)
 %production parameters
 hparams = struct;
 %resource demand
-hparams.J = {0,0};
+hparams.J = [0,0];
 %leakiness
-hparams.T = {20,2};
+hparams.T = [20,2];
 %coopertivitity
-hparams.n = num2cell(p.s);
+hparams.n = p.s;
 %loop through each edge
-hparams.a = {10,1,10,1};
-hparams.b = {1,10,1,10};
+hparams.a = [10,1,10,1];
+hparams.b = [1,10,1,10];
 
 %shared degradation parameters degradation applies to all nodes (set K to
 %inf if not degradated) could define index sets to use if had multiple
 %proteases present
 gparams = struct;
-gparams.k = num2cell(p.k3);         %catalytic rate of degradation
-gparams.Ptot = num2cell(p.Ptot);    %total amount of protease
-gparams.K = num2cell(p.K3);         %binding constant for each node
+gparams.k = p.k3;       %catalytic rate of degradation
+gparams.Ptot = p.Ptot;  %total amount of protease
+gparams.K = p.K3;       %binding constant for each node
 
 %combining into output parameter struct
-p.delta = p.delta2;             %dilution rate constant
-p.n = n;                        %number of nodes
-p.m = m;                        %number of edges
-p.h = hparams;                  %production parameter struct
-p.a = hparams;                  %production resource sharing struct
-p.g = gparams;                  %degradation resource sharing struct
+p.delta = p.delta2;     %dilution rate constant
+p.n = n;                %number of nodes
+p.m = m;                %number of edges
+p.h = hparams;          %production parameter struct
+p.a = hparams;          %production resource sharing struct
+p.g = gparams;          %degradation resource sharing struct

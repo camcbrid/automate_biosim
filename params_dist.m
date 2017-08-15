@@ -87,23 +87,23 @@ end
 %production parameters
 hparams = struct;
 %resource demand
-hparams.J = num2cell(p.DNA./p.Kp.*(1+p.k1*p.RNAP./(p.K2*p.delta1)));
+hparams.J = p.DNA./p.Kp.*(1+p.k1*p.RNAP./(p.K2*p.delta1));
 %leakiness
-hparams.T = num2cell(p.k2*p.k1*p.RNAP*p.Ribo*p.DNA./(p.Kp.*p.K2.*p.delta1));
+hparams.T = p.k2*p.k1*p.RNAP*p.Ribo*p.DNA./(p.Kp.*p.K2.*p.delta1);
 %coopertivitity
-hparams.n = num2cell(p.s);
+hparams.n = p.s;
 %loop through each edge
 for ii = 1:m
     if edge_weights(ii) > 0
         %activation; max: T*a/b; min: T
-        hparams.a{ii} = max([p.Kp(k)/p.K1(ii),p.K1(ii)/p.Kp(k)])*...
+        hparams.a(ii) = max([p.Kp(k)/p.K1(ii),p.K1(ii)/p.Kp(k)])*...
             abs(edge_weights(ii))/p.K0(ii); %activation strength
-        hparams.b{ii} = 1./p.K0(ii);        %1/binding constant
+        hparams.b(ii) = 1./p.K0(ii);        %1/binding constant
     else
         %repression; max: T; min: T*a/b
-        hparams.a{ii} = min([p.Kp(k)/p.K1(ii),p.K1(ii)/p.Kp(k)])/...
+        hparams.a(ii) = min([p.Kp(k)/p.K1(ii),p.K1(ii)/p.Kp(k)])/...
             (abs(edge_weights(ii))*p.K0(ii)); %activation strength
-        hparams.b{ii} = 1./p.K0(ii);        %1/binding constant
+        hparams.b(ii) = 1./p.K0(ii);        %1/binding constant
     end
     %advance the node counter
     if any(ii == nodevec)
@@ -116,8 +116,8 @@ for ii = 1:m
                 s = z(k) + r;   %output counter
                 %assign parameters for multiple protein binding to promoter
                 d = 1./(p.K02(s)*p.K0(rinds(r,1))) + 1./(p.K02(s)*p.K0(rinds(r,2)));
-                hparams.c{s} = max([p.Kp(k)/p.K1(ii),p.K1(ii)/p.Kp(k)])*d;
-                hparams.d{s} = d;
+                hparams.c(s) = max([p.Kp(k)/p.K1(ii),p.K1(ii)/p.Kp(k)])*d;
+                hparams.d(s) = d;
             end
         end
         %advance the node counter
@@ -129,18 +129,17 @@ end
 %inf if not degradated) could define index sets to use if had multiple
 %proteases present
 gparams = struct;
-gparams.k = num2cell(p.k3);         %catalytic rate of degradation
-gparams.Ptot = num2cell(p.Ptot);    %total amount of protease
-gparams.K = num2cell(p.K3);         %binding constant for each node
+gparams.k = p.k3;       %catalytic rate of degradation
+gparams.Ptot = p.Ptot;  %total amount of protease
+gparams.K = p.K3;       %binding constant for each node
 
 %combining into output parameter struct
-p.delta = p.delta2;             %dilution rate constant
-p.n = n;                        %number of nodes
-p.m = m;                        %number of edges
-p.q = q;                        %number of pairs of double edges
-p.h = hparams;                  %production parameter struct
-p.a = hparams;                  %production resource sharing struct
-p.g = gparams;                  %degradation resource sharing struct
+p.delta = p.delta2;     %dilution rate constant
+p.n = n;                %number of nodes
+p.m = m;                %number of edges
+p.h = hparams;          %production parameter struct
+p.a = hparams;          %production resource sharing struct
+p.g = gparams;          %degradation resource sharing struct
 
 %record ranges
 prng = struct;
