@@ -19,6 +19,6 @@ Running methods:
 3) x = 'montecarlo': runs system q times using randomly choosen parameters each run with constant or no external input and outputs the distribution of the equilibrium points. Initial conditions are choosen randomly
 
 Preconfigured systems:
-y = 'ActCasc': use with runODE_sweep.m. Shows bifurcation in a two node activation cascade due to protease sharing. A = [0 1; 0 0; 1 0]
-y = 'RepCasc': use with runODE_sweep.m. Shows bifurcation in a two node repression cascade due to ribosome sharing. A = [0 -1; 0 0; -1 0]
-y = 'ARosc': use with runODE_static.m (with no external input). Shows oscillations in the Hasty oscillator topology. A = [1 1; -1 -1]
+1) y = 'ActCasc': use with runODE_sweep.m. Shows bifurcation in a two node activation cascade due to protease sharing. A = [0 1; 0 0; 1 0]
+2) y = 'RepCasc': use with runODE_sweep.m. Shows bifurcation in a two node repression cascade due to ribosome sharing. A = [0 -1; 0 0; -1 0]
+3) y = 'ARosc': use with runODE_static.m (with no external input). Shows oscillations in the Hasty oscillator topology. A = [1 1; -1 -1]
