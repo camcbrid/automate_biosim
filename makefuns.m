@@ -205,8 +205,8 @@ out = zeros(1,n);               %output a row of length n
 
 %loop through each input,x
 for ii = 1:length(x)
-    numvec(ii) = a{ii}*x(ii)^s{ii};
-    denvec(ii) = b{ii}*x(ii)^s{ii};
+    numvec(ii) = a{ii}*x(ii,:).^s{ii};
+    denvec(ii) = b{ii}*x(ii,:).^s{ii};
 end
 asum = (1+sum(numvec));
 bsum = (1+sum(denvec));
@@ -326,9 +326,9 @@ for ii = 1:n
     xnorm(ii) = x(ii)/K{ii};
     Knorm(ii) = 1/K{ii};
 end
-den = 1+sum(xnorm);                 %denominator
+den = 1 + sum(xnorm);               %denominator
 outvec = den*Knorm;                 %diagonal entries...
 B = diag(outvec);                   %into a diagonal matrix
 C = kron(xnorm,Knorm');             %rest of entries (complete)
-out = -k*Ptot*(B + C)./(den.^2);    %dg/dx
+out = -k*Ptot*(B - C)./(den.^2);    %dg/dx
 
