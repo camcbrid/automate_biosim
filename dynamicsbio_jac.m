@@ -23,7 +23,7 @@ if all(isfield(funs,{'hJ','aJ','gJ'}))
     %works for vector version of da/dx (not matrix)
     if min(size(aJ(z,u))) == 1
         J = hJ(z,u).*kron((a(z,u)-ones(length(z),1))*mu + ones(length(z),1),...
-            ones(size(z))') + mu*kron(h(z,u),aJ(z,u)') + lambda*gJ(z) - L;
+            ones(size(z))') + mu*kron(h(z,u),aJ(z,u)) + lambda*gJ(z) - L;
     else
         J = zeros(size(hJ(z,u)));
     end

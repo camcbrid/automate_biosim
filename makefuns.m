@@ -214,7 +214,7 @@ Fpout = combineFpU(U,p,A,inds);
 normvec = cell2mat(cellfun(@(x,y) x.*y, num2cell(p.J(:)), Fout(:),...
     'UniformOutput',false));
 %Jacobian of a(x)
-out = - sum(p.J(:).*Fpout,2)/(1 + sum(normvec,1)).^2;
+out = - sum(p.J(:).*Fpout,1)/(1 + sum(normvec,1)).^2;
 
 
 

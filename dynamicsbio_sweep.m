@@ -1,4 +1,4 @@
-function [dz,Jout] = dynamicsbio_sweep(t,z,funs,umax,tfinal,mu,lambda)
+function [dz,Jout] = dynamicsbio_sweep(t,z,funs,urng,tfinal,mu,lambda)
 %sweep through 
 
 %defaults
@@ -9,6 +9,14 @@ if nargin < 5
     end
 end
 
+if length(urng) == 1
+    umin = 0;
+    umax = max(urng);
+else
+    umin = min(urng);
+    umax = max(urng);
+end
+
 %dynamics functions
 h = funs.h;     %production
 a = funs.a;     %production resource sharing
@@ -17,9 +25,9 @@ L = funs.L;     %dilution matrix
 
 %input sweep (triangle wave input)
 if t < tfinal/2
-    u = umax*2*t/tfinal;
+    u = (umax-umin)*2*t/tfinal + umin;
 else
-    u = 2*umax*(1 - t/tfinal);
+    u = 2*(umax-umin)*(1 - t/tfinal) + umin;
 end
 
 %dynamics
@@ -35,7 +43,7 @@ if nargout == 2 && all(isfield(funs,{'hJ','aJ','gJ'}))
     %works for vector version of da/dx (not matrix)
     if min(size(aJ(z,u))) == 1
         Jout = hJ(z,u).*kron((a(z,u)-ones(length(z),1))*mu + ones(length(z),1),...
-            ones(size(z))') + mu*kron(h(z,u),aJ(z,u)') + lambda*gJ(z) - L;
+            ones(size(z))') + mu*kron(h(z,u),aJ(z,u)) + lambda*gJ(z) - L;
     else
         Jout = zeros(size(hJ(z,u)));
     end
