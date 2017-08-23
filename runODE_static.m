@@ -1,35 +1,45 @@
-%simulate ODE with one constant input to the system
+function output = runODE_static(A,pfun,u)
+%simulate ODE with one constant input or no input to the system using 
+%reduced models including resource sharing. Input the weighted, signed 
+%adjacency matrix, A. Inputs go in rows after adjacency matrix. External 
+%inputs go in the last row (n+1)st. If no (n+1)st row, there is no external
+%input if using random parameters; activation edges > 0; repression edges 
+%< 0. Edge order is done by cols first (order that A(:) returns).
 
-%input the weighted, signed adjacency matrix
-%inputs go in rows following adjacency matrix. This makes a non-square
-%matrix with more rows than cols
-%activation should be in [1,inf]; repression in [-1,0]
-%edge order is done by cols first (order that A(:) returns)
-%external inputs go in the last row (n+1)st. If no (n+1)st row, there is no external input
-A = [-1 -1;
-    1 1];
-pfun = @paramsARosc;    %parameter function handle
+if nargin < 3
+    %constant external input
+    u = 0;
+    if nargin < 2
+        %parameter function handle or parameter struct
+        pfun = @(A) paramsARosc(A);
+        if nargin < 1
+            A = [1 1;
+                -1 -1];
+        end
+    end
+end
 
 %settings
-ploton = true;      %if want to display a figure
-uniformon = true;   %if you want all nodes/edges to have the same parameters
-tfinal = 20;        %simulate from 0 to tfinal
-umax = 0;           %sweep through inputs from 0 to umax with a trianglewave input
-%setup
-B = (A ~= 0);       %logical adjacency matrix
-n = min(size(A));   %number of nodes
+addpath parameters utility
+ploton = true;          %if want to display a figure
+tfinal = 20;            %simulate from 0 to tfinal
+n = min(size(A));       %number of nodes
 
 tic
-%create function handles
-%edit this function to change form of the dynamics (uses Hill fcns now)
+
+%create function handles: edit this function to change form of the dynamics
 [funs,p] = makefuns(A,pfun);
 
 %setup for ODE
-xmax = ones(n,1);
-x0 = xmax(:).*rand(n,1);
-f_cnst = @(t,x) dynamicsbio_static(t,x,funs,umax,0,0);
+if all(isfield(p,{'RNAP','Ribo','k1','k2','delta1','delta2','DNA','Kp','K2'}))
+    xmax = (p.RNAP*p.Ribo*p.k1*p.k2./(p.delta1*p.delta2)).*p.DNA./(p.Kp.*p.K2);
+else
+    xmax = 5*ones(n,1);
+end
+x0 = 10.^(log10(xmax(:)).*rand(n,1));
+f_cnst = @(t,x) dynamicsbio_static(t,x,funs,u,1,1);
 opts = odeset('AbsTol',1e-6,'RelTol',1e-4,'Stats','off','Vectorized','on',...
-    'Jacobian',@(t,x) dynamicsbio_jac(t,x,funs,umax));
+    'Jacobian',@(t,x) dynamicsbio_jac(t,x,funs,u));
 
 %run ode
 sol = ode15s(f_cnst,[0 tfinal],x0,opts);
@@ -37,33 +47,39 @@ sol = ode15s(f_cnst,[0 tfinal],x0,opts);
 %outputs
 tout = linspace(0,tfinal,700)';
 yout = deval(sol,tout);
-uvec = umax*2*tout/tfinal;
-uvec(tout>tfinal/2) = 2*umax*(1 - tout(end/2+1:end)/tfinal);
 yf = yout(:,end);
 toc
 
 %Fourier decomposition
-Z = fft(yout');
+fftout = fft(yout');
 freq = 1./tout;
-[~,ind] = max(abs(Z(2:end/2,:)));
+[~,ind] = max(abs(fftout(2:end/2,:)));
 if ind > 1
     disp('oscillations')
 end
 
+%output data
+output = struct;
+output.t = tout;
+output.y = yout;
+output.yf = yf;
+output.fftout = fftout;
+output.p = p;
+
 %plot
 if ploton
-    figure(1); clf;
+    figure(2); clf;
     
     %proteins vs time
     subplot(211);
-    h1 = semilogy(tout(1:end),yout(:,1:end));
+    h1 = semilogy(tout,yout);
     title('Time plot')
     xlabel('time')
     ylabel('protein concentration')
     set(h1,'linewidth',1.5)
     
     subplot(212);
-    plot(tout(2:end/2),abs(Z(2:end/2,:)))
+    plot(freq(1:end/2),abs(fftout(1:end/2,:)))
     xlabel('frequency [1/hrs?]')
     ylabel('fft magnitude')
     
@@ -75,15 +91,18 @@ end
 if n == 2 && ploton
     
     %settings
-    ngrid = 15;     %number of grid points in each dimension
+    ngrid = 20;     %number of grid points in each dimension
     %bounds for the mesh
-    x1max = 1.2*log10(max(yout(1,:)));
-    x2max = 1.2*log10(max(yout(2,:)));
-    x1min = log10(min(y1(y1 > 0)));
-    x2min = log10(min(y2(y2 > 0)));
+    y1 = yout(1,:);
+    y2 = yout(2,:);
+    x1max = log10(max(y1))+.1;
+    x2max = log10(max(y2))+.1;
+    x1min = log10(min(y1(y1 > 0)))-.1;
+    x2min = log10(min(y2(y2 > 0)))-.1;
+    
     %init
-    Z = zeros(ngrid);
-    Z2 = zeros(length(yout),1);
+    detdfdx = zeros(ngrid);
+    detpath = zeros(length(yout),1);
     x1vec = logspace(x1min,x1max,ngrid);
     x2vec = logspace(x2min,x2max,ngrid);
     [X1,X2] = meshgrid(x1vec,x2vec);
@@ -92,25 +111,28 @@ if n == 2 && ploton
         for jj = 1:ngrid
             y = [x1vec(jj);x2vec(ii)];
             [~,dfdz] = f_cnst(tfinal,y);
-            Z(ii,jj) = log10(abs(det(dfdz)));
+            detdfdx(ii,jj) = det(dfdz);
         end
     end
     %trajectory path on det Jacobian landscape
     for k = 1:length(yout)
         [~,dfdz2] = f_cnst(tfinal,yout(:,k));
-        Z2(k) = log10(abs(det(dfdz2))) + .01;
+        detpath(k) = det(dfdz2) + .01;
     end
     
     %plot
     figure(3); clf;
-    mesh(X1,X2,Z)
+    surf(X1,X2,detdfdx,'edgecolor','none')
     set(gca,'xscale','log','yscale','log','zscale','linear')
     xlabel('x_1')
     ylabel('x_2')
-    zlabel('log_{10}(det(df/dx))')
+    zlabel('det(df/dx)')
     hold on
-    plot3(yout(1,end),yout(2,end),Z2(end),'kx',...
-        yout(1,1),yout(2,1),Z2(1),'k^',...
-        yout(1,:),yout(2,:),Z2,'linewidth',3)
-    view(2)
+    plot3(yout(1,end),yout(2,end),detpath(end),'kx',...
+        yout(1,1),yout(2,1),detpath(1),'k^',...
+        yout(1,:),yout(2,:),detpath,'linewidth',3)
+    xlim(10.^[x1min,x1max])
+    ylim(10.^[x2min,x2max])
+    alpha(0.5)
+    view([-57.12 58.96])
 end

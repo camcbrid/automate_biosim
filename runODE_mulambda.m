@@ -1,14 +1,14 @@
-function output = runODE_sweep(A,pfun,urng)
-%run ODE sweeping external input, u, using reduced models including 
-%resource sharing. Input the weighted, signed adjacency matrix, A. Inputs go 
-%in rows after adjacency matrix. External inputs go in the last row 
-%(n+1)st. If no (n+1)st row, there is no external input if using random 
+function output = runODE_mulambda(A,pfun,u)
+%run ODE for cascade using reduced models including resource sharing to
+%find bifurcation. Input the weighted, signed adjacency matrix, A. Inputs
+%go in rows after adjacency matrix. External inputs go in the last row
+%(n+1)st. If no (n+1)st row, there is no external input if using random
 %parameters; activation edges > 0; repression edges < 0. Edge order is done
 %by cols first (order that A(:) returns).
 
 if nargin < 3
-    %sweep through inputs from 0 to umax with a trianglewave input
-    urng = [.015,.1];
+    %constant external input
+    u = .07;
     if nargin < 2
         %parameter function handle or parameter struct
         pfun = @(A) paramsActCasc(A);
@@ -37,9 +37,9 @@ else
     xmax = 5*ones(n,1);
 end
 x0 = 10.^(log10(xmax(:)).*rand(n,1));
-f_sweep  = @(t,x) dynamicsbio_sweep(t,x,funs,urng,tfinal,1,1);
+f_sweep  = @(t,x) dynamicsbio_mulambda(t,x,funs,u,tfinal);
 opts = odeset('AbsTol',1e-9,'RelTol',1e-9,'Stats','off','Vectorized','on',...
-    'Jacobian',@(t,x) dynamicsbio_jac(t,x,funs,max(urng)));
+    'Jacobian',@(t,x) dynamicsbio_jac(t,x,funs,max(u)));
 
 %run ode
 sol = ode15s(f_sweep,[0 tfinal],x0,opts);
@@ -47,35 +47,35 @@ sol = ode15s(f_sweep,[0 tfinal],x0,opts);
 %outputs
 tout = linspace(0,tfinal,1200)';
 yout = deval(sol,tout);
-uvec = (max(urng) - min(urng))*2*tout/tfinal + min(urng);
-uvec(tout>tfinal/2) = 2*(max(urng) - min(urng))*...
-    (1 - tout(end/2+1:end)/tfinal) + min(urng);
+muvec = tout/tfinal;
+lambdavec = muvec;
 toc
 
 %Jacobian
 detf = zeros(length(tout),1);
 if n < 10
     for jj = 1:length(tout)
-        J = dynamicsbio_jac(tout(jj),yout(:,jj),funs,uvec(jj),1,1);
+        J = dynamicsbio_jac(tout(jj),yout(:,jj),funs,u,muvec(jj),lambdavec(jj));
         detf(jj) = det(J);
     end
 end
 
 %output data
 output = struct;
-output.t = tout;
 output.y = yout;
-output.u = uvec;
+output.t = tout;
+output.mu = muvec;
+output.lambda = lambdavec;
 output.detf = detf;
 output.p = p;
 
 %plot
 if ploton
-    figure(4); clf;
+    figure(6); clf;
     
     %protein concentration vs time
     subplot(221)
-    h1 = semilogy(tout,yout);
+    h1 = semilogy(tout(1:end),yout(:,1:end));
     title('Time plot')
     xlabel('time')
     ylabel('protein concentration')
@@ -83,14 +83,14 @@ if ploton
     
     %protein concentration vs input
     subplot(223);
-    h2 = semilogy(uvec,yout);
+    h2 = semilogy(muvec(1:end),yout(:,1:end));
     title('Input response plot')
     xlabel('u')
     ylabel('protein concentration')
     set(h2,'linewidth',1.5)
     
     subplot(2,2,[2,4]);
-    h3 = plot(uvec,detf);
+    h3 = plot(muvec(3:end),detf(3:end));
     xlabel('u')
     ylabel('det(df/dx)')
     set(gca,'yaxislocation','right');
@@ -98,14 +98,14 @@ if ploton
     
     %input/response plot and input vs det(df/dx) plots
     figure(2); clf;
-    h2 = semilogy(uvec,yout);
+    h2 = semilogy(muvec(1:end),yout(:,1:end));
     title('Input response plot')
-    xlabel('u')
+    xlabel('\mu')
     ylabel('protein concentration')
     set(h2,'linewidth',1.5)
     
     yyaxis right
-    h3 = plot(uvec(3:end),(detf(3:end)),'--');
+    h3 = plot(muvec(3:end),(detf(3:end)),'--');
     ylabel('det(df/dx)')
     set(h3,'linewidth',1.5)
 end
@@ -115,7 +115,7 @@ if n == 2 && ploton
     
     %settings
     ngrid = 20;     %number of grid points in each dimension
-    f_jac = @(t,x) dynamicsbio_jac(t,x,funs,max(urng));
+    f_jac = @(t,x) dynamicsbio_jac(t,x,funs,u);
     %bounds for the mesh
     y1 = yout(1,:);
     y2 = yout(2,:);
@@ -123,10 +123,9 @@ if n == 2 && ploton
     x2max = log10(max(y2))+.1;
     x1min = log10(min(y1(y1 > 0)))-.1;
     x2min = log10(min(y2(y2 > 0)))-.1;
-    
     %init
     Z = zeros(ngrid);
-    Z2 = zeros(length(yout(:,3:end)),1);
+    Z2 = zeros(length(yout),1);
     x1vec = logspace(x1min,x1max,ngrid);
     x2vec = logspace(x2min,x2max,ngrid);
     [X1,X2] = meshgrid(x1vec,x2vec);
@@ -141,26 +140,26 @@ if n == 2 && ploton
     end
     toc
     %trajectory path on det Jacobian landscape
-    for k = 3:length(yout)
+    for k = 1:length(yout)
         dfdz2 = f_jac(tfinal,yout(:,k));
-        Z2(k-2) = det(dfdz2) + .01;
+        Z2(k) = det(dfdz2) + .01;
     end
     toc
     
     %surface plot
-    figsurf = figure(5); clf;
-    axis tight manual
-    h = surf(X1,X2,Z,'edgecolor','none');
+    figure(7); clf;
+    h = surf(X1,X2,Z);
     set(gca,'xscale','log','yscale','log','zscale','linear')
     shading flat
+    set(h,'edgecolor','none')
     xlabel('x_1')
     ylabel('x_2')
     zlabel('det(df/dx)')
     hold on
     %plot trajectory on the surface
     plot3(yout(1,end),yout(2,end),Z2(end),'kx',...
-        yout(1,3),yout(2,3),Z2(1),'k^',...
-        yout(1,3:end),yout(2,3:end),Z2,'linewidth',3)
+        yout(1,1),yout(2,1),Z2(1),'k^',...
+        yout(1,:),yout(2,:),Z2,'linewidth',3)
     xlim(10.^[x1min,x1max])
     ylim(10.^[x2min,x2max])
     alpha(0.5)
