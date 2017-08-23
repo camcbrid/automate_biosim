@@ -3,8 +3,10 @@ Automatically simulate ODE biomolecular models for transcription factor networks
 
 Quick file descriptions:
 1) runODE_x.m: run ODE solver on dynamicsbio_x.m
+Utility:
 2) dynamicsbio_x.m: contains dynamics
 3) makefuns.m: create function handles to be used by dynamicsbio_x.m
+Parameters:
 4) params_y.m: create relevant parameter struct to be used by makefuns.m
 
 Quick start:
@@ -17,6 +19,8 @@ Running methods:
 1) x = 'sweep': sweeps input, u, from 0 to umax (specified in runODE_sweep.m)
 2) x = 'static': runs system with constant or no external input and outputs equilibrium point. Initial condition is choosen randomly
 3) x = 'montecarlo': runs system q times using randomly choosen parameters each run with constant or no external input and outputs the distribution of the equilibrium points. Initial conditions are choosen randomly
+4) x = 'fsolve': runs system with fsolve from a random initial start point
+5) x = 'fmincon': simulates system with fmincon and MultiStart (20 runs) to find multiple start points. Identifies both stable and unstable eq pts
 
 Preconfigured systems:
 1) y = 'ActCasc': use with runODE_sweep.m. Shows bifurcation in a two node activation cascade due to protease sharing. A = [0 1; 0 0; 1 0]

@@ -1,9 +1,11 @@
-function [funs,p] = makefuns(A,parafun)
+function [funs,p] = makefuns_mass(A,parafun)
 %make function handles for production, resource sharing, and degradation
 %dynamics. Can be used in runbio.m run by ode15s to run dynamics of a
 %protein system with QSS assumption. Inputs are adjacency matrix and
 %parameter function that output parameter struct and takes adjacency matrix
-%as input. Also returns parameter struct used for debugging
+%as input. Also returns parameters in a struct used for debugging
+
+%use high dimensional mass action dynamics
 
 %defaults
 if nargin < 2
@@ -37,7 +39,7 @@ funs.aJ = @(x,u) aJfun(x,p.a,u,A);      %production resource sharing Jacobian (v
 funs.gJ = @(x) gJfun(x,p.g,A);          %degradation Jacobian (complete clique)
 funs.J = @(x,u,mu,lambda) hJfun(x,p.h,u,A).*kron((afun(x,p.a,u,A) - ...
     ones(length(x),1))*mu + ones(length(x),1),ones(size(x))') + ...
-    mu*kron(hfun(x,p.h,u,A),aJfun(x,p.a,u,A)') + lambda*gfun(x,p.g) - L; %Jacobian
+    mu*kron(hfun(x,p.h,u,A),aJfun(x,p.a,u,A)) + lambda*gfun(x,p.g) - L; %Jacobian
 %helper functions
 funs.F = @(x,a,b,n) F2(x,a,b,n);                %Hill function
 funs.Fp = @(x,a,b,s,n,inds) Fp2(x,a,b,s,n,inds);%Hill function derivative w/r/t all states

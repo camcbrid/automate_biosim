@@ -1,11 +1,11 @@
-function [dz,Jout] = dynamicsbio_RS(t,z,funs,umax,tfinal,mu,lambda,RSnum)
-%sweep through
+function [y,grad] = dynamicsbio_fmincon(t,z,funs,u,mu,lambda)
+%simulate bio process with Hill function kinetics (simplified) with
+%constant input, u
 
-%defaults
 if nargin < 5
-    mu = 1;         %turn on production resource sharing [0,1]
+    mu = 1;             %turn on production resource sharing [0,1]
     if nargin < 6
-        lambda = 0; %turn on degradation resource sharing [0,1]
+        lambda = 1;     %turn on degradation resource sharing [0,1]
     end
 end
 
@@ -15,28 +15,25 @@ a = funs.a;     %production resource sharing
 g = funs.g;     %degradation with resource sharing
 L = funs.L;     %dilution matrix
 
-%input sweep (triangle wave input)
-if t < tfinal/2
-    u = umax*2*t/tfinal;
-else
-    u = 2*umax*(1 - t/tfinal);
-end
-
 %dynamics
 dz = h(z,u).*((a(z,u) - ones(size(z)))*mu + ones(size(z))) + lambda*g(z) - L*z;
+%objective function scalar output
+y = rssq(dz).^2;
 
 %Jacobian
 if nargout == 2 && all(isfield(funs,{'hJ','aJ','gJ'}))
     %Jacobians for each function, h, a, and g
+    %vectorizing doesn't work here
     hJ = funs.hJ;
     gJ = funs.gJ;
     aJ = funs.aJ;
     
     %works for vector version of da/dx (not matrix)
     if min(size(aJ(z,u))) == 1
-        Jout = hJ(z,u).*kron((a(z,u)-ones(length(z),1))*mu + ones(length(z),1),...
+        J = hJ(z,u).*kron((a(z,u)-ones(length(z),1))*mu + ones(length(z),1),...
             ones(size(z))') + mu*kron(h(z,u),aJ(z,u)) + lambda*gJ(z) - L;
     else
-        Jout = zeros(size(hJ(z,u)));
+        J = zeros(size(hJ(z,u)));
     end
+    grad = 2*sum(dz(:).*J,1);
 end

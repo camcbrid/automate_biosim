@@ -32,6 +32,7 @@ Ptotrng = [0,0];        % [nM] total amount of protease
 K3rng = log10([1200,1200]);    % [nM] protein with protease binding constant
 
 
+
 %setup
 B = (A ~= 0);               %logical adjacency matrix
 nodevec = [0,cumsum(sum(B,1))]; %indicies of nodes in the edge counter
@@ -43,10 +44,12 @@ edge_weights = A(A ~= 0);   %extract weighting of each edge
 
 %need to pick for all duples of input combinations
 if m > 1
-    %find number of 
+    %find number of pairs of edges incident to node jj
     twocombos = zeros(n,1);
     for jj = 1:n
-        twocombos(jj) = nchoosek(indvec(jj),2);
+        if indvec(jj) > 1
+            twocombos(jj) = nchoosek(indvec(jj),2);
+        end
     end
     %number of additonal parameters required:
     q = sum(twocombos);
@@ -174,13 +177,13 @@ if strcmp(distname,'norm')
     mu = mean(p_rng);
     sigma = (max(p_rng) - min(p_rng))/3;
     out = normrnd(mu,sigma,[1,n]);
-    out(out < 0) = 0;
+    out(out <= 0) = 1e-4;
 elseif strcmp(distname,'logn')
     %lognormal distribution (input range is log10(range))
     mu = mean(log(10.^p_rng));
     sigma = (log(10^(max(p_rng) - min(p_rng))))/3;
     out = lognrnd(mu,sigma,[1,n]);
-    out(out < 0) = 0;
+    out(out <= 0) = 1e-4;
 elseif strcmp(distname,'unif')
     %uniform distribution
     out = min(p_rng) + (max(p_rng) - min(p_rng))*rand(1,n);
@@ -188,5 +191,5 @@ else
     mu = mean(p_rng);
     sigma = (max(p_rng) - min(p_rng))/3;
     out = random(distname,mu,sigma,[1,n]);
-    out(out < 0) = 0;
+    out(out <= 0) = 1e-4;
 end
