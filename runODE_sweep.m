@@ -77,21 +77,21 @@ if ploton
     subplot(221)
     h1 = semilogy(tout,yout);
     title('Time plot')
-    xlabel('time')
-    ylabel('protein concentration')
+    xlabel('time [hrs]')
+    ylabel('protein concentration [nM]')
     set(h1,'linewidth',1.5)
     
     %protein concentration vs input
     subplot(223);
     h2 = semilogy(uvec,yout);
     title('Input response plot')
-    xlabel('u')
-    ylabel('protein concentration')
+    xlabel('u [nM]')
+    ylabel('protein concentration [nM]')
     set(h2,'linewidth',1.5)
     
     subplot(2,2,[2,4]);
     h3 = plot(uvec,detf);
-    xlabel('u')
+    xlabel('u [nM]')
     ylabel('det(df/dx)')
     set(gca,'yaxislocation','right');
     set(h3,'linewidth',1.5)
@@ -100,8 +100,8 @@ if ploton
     figure(2); clf;
     h2 = semilogy(uvec,yout);
     title('Input response plot')
-    xlabel('u')
-    ylabel('protein concentration')
+    xlabel('u [nM]')
+    ylabel('protein concentration [nM]')
     set(h2,'linewidth',1.5)
     
     yyaxis right
@@ -115,7 +115,6 @@ if n == 2 && ploton
     
     %settings
     ngrid = 20;     %number of grid points in each dimension
-    f_jac = @(t,x) dynamicsbio_jac(t,x,funs,max(urng));
     %bounds for the mesh
     y1 = yout(1,:);
     y2 = yout(2,:);
@@ -125,42 +124,36 @@ if n == 2 && ploton
     x2min = log10(min(y2(y2 > 0)))-.1;
     
     %init
-    Z = zeros(ngrid);
-    Z2 = zeros(length(yout(:,3:end)),1);
+    detdfdx = zeros(ngrid);
+    detpath = zeros(length(yout),1);
     x1vec = logspace(x1min,x1max,ngrid);
     x2vec = logspace(x2min,x2max,ngrid);
     [X1,X2] = meshgrid(x1vec,x2vec);
-    tic
     %loop through each grid point, evaluating the det of Jacobian at each
     for ii = 1:ngrid
         for jj = 1:ngrid
             y = [x1vec(jj);x2vec(ii)];
-            dfdz = f_jac(tfinal,y);
-            Z(ii,jj) = det(dfdz);
+            [~,dfdz] = f_cnst(tfinal,y);
+            detdfdx(ii,jj) = det(dfdz);
         end
     end
-    toc
     %trajectory path on det Jacobian landscape
-    for k = 3:length(yout)
-        dfdz2 = f_jac(tfinal,yout(:,k));
-        Z2(k-2) = det(dfdz2) + .01;
+    for k = 1:length(yout)
+        [~,dfdz2] = f_cnst(tfinal,yout(:,k));
+        detpath(k) = det(dfdz2) + .01;
     end
-    toc
     
-    %surface plot
-    figsurf = figure(5); clf;
-    axis tight manual
-    h = surf(X1,X2,Z,'edgecolor','none');
+    %plot
+    figure(3); clf;
+    surf(X1,X2,detdfdx,'edgecolor','none')
     set(gca,'xscale','log','yscale','log','zscale','linear')
-    shading flat
-    xlabel('x_1')
-    ylabel('x_2')
-    zlabel('det(df/dx)')
+    xlabel('x_1 concentration []')
+    ylabel('x_2 concentration []')
+    zlabel('det(df/dx) []')
     hold on
-    %plot trajectory on the surface
-    plot3(yout(1,end),yout(2,end),Z2(end),'kx',...
-        yout(1,3),yout(2,3),Z2(1),'k^',...
-        yout(1,3:end),yout(2,3:end),Z2,'linewidth',3)
+    plot3(yout(1,end),yout(2,end),detpath(end),'kx',...
+        yout(1,3),yout(2,3),detpath(3),'ko',...
+        yout(1,3:end),yout(2,3:end),detpath(3:end),'linewidth',3)
     xlim(10.^[x1min,x1max])
     ylim(10.^[x2min,x2max])
     alpha(0.5)

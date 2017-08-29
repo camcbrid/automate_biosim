@@ -9,18 +9,26 @@
 %find eq pt distribution
 
 %defaults
-A = [0 1 -1;
-    0 0 1;
-    -1 0 0];
-q = 1000;
-sysname = 'IFFL with neg feedback';
+% A = [0 1 -1;
+%     0 0 1;
+%     -1 0 0];
+% q = 100;
+% sysname = 'IFFL with neg feedback';
+
+A = [0 0 1 1 1;
+    0 0 1 1 1;
+    0 0 0 0 0;
+    0 0 0 0 0;
+    0 0 0 0 0];
+n = min(size(A));
+q = 100;
+sysname = 'Dense overlap pos forward';
 pfun = @params_dist;
 u = 10;
 urng = [0,u];
 
 disp('fmincon')
 outfmincon = runfminconbio(A,pfun,u);
-return
 disp('fsolve')
 outfsolve = runfsolvebio(A,pfun,u);
 disp('ODE_static')
@@ -30,7 +38,7 @@ outsweep = runODE_sweep(A,pfun,urng);
 disp('ODE_mulambda')
 outmulambda = runODE_mulambda(A,pfun,u);
 disp('Monte Carlo')
-outMC = runODE_montecarlo(A,sysname,q,true);
+outMC = runODE_montecarlo(A,sysname,q,false);
 
 %output
 dataout = struct;
@@ -40,3 +48,16 @@ dataout.sweep = outsweep;
 dataout.fsolve = outfsolve;
 dataout.mulambda = outmulambda;
 dataout.MC = outMC;
+
+cd output
+filename = [sysname,'_n',num2str(n),'_allsimout'];
+save([filename,'.mat'],'dataout','A','u','urng','pfun','q','sysname')
+cd figs
+for ii = 1:8
+    if ishandle(ii)
+        fig = figure(ii);
+        savefig(fig,[filename,num2str(ii),'.fig'])
+    end
+end
+cd ..
+cd ..

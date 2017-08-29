@@ -12,9 +12,15 @@ if nargin < 3
     if nargin < 2
         %parameter function handle or parameter struct
         pfun = @(A) paramsARosc(A);
+        %pfun = @params_dist;
         if nargin < 1
-            A = [1 1;
-                -1 -1];
+            A = [-1 -1;
+                1 1];
+            %A = [0 0 1 1 1;
+            %    0 0 1 1 1;
+            %    0 0 0 0 0;
+            %    0 0 0 0 0;
+            %    0 0 0 0 0];
         end
     end
 end
@@ -22,7 +28,7 @@ end
 %settings
 addpath parameters utility
 ploton = true;          %if want to display a figure
-tfinal = 20;            %simulate from 0 to tfinal
+tfinal = 50;            %simulate from 0 to tfinal
 n = min(size(A));       %number of nodes
 
 tic
@@ -51,8 +57,9 @@ yf = yout(:,end);
 toc
 
 %Fourier decomposition
-fftout = fft(yout');
-freq = 1./tout;
+fftout = fft(yout(:,1:end)');
+Fs = 1/(tout(2)-tout(1));
+freq2 = Fs*(0:length(tout)/2)/length(tout);
 [~,ind] = max(abs(fftout(2:end/2,:)));
 if ind > 1
     disp('oscillations')
@@ -72,16 +79,17 @@ if ploton
     
     %proteins vs time
     subplot(211);
-    h1 = semilogy(tout,yout);
+    h1 = semilogy(tout(3:end),yout(:,3:end));
     title('Time plot')
-    xlabel('time')
-    ylabel('protein concentration')
+    xlabel('time [hrs]')
+    ylabel('protein concentration [nM]')
     set(h1,'linewidth',1.5)
     
     subplot(212);
-    plot(freq(1:end/2),abs(fftout(1:end/2,:)))
-    xlabel('frequency [1/hrs?]')
-    ylabel('fft magnitude')
+    h2 = loglog(freq2(1:end-1),abs(fftout(1:end/2,:)/length(tout)));
+    xlabel('frequency [cycles/hr]')
+    ylabel('fft magnitude [nM]')
+    set(h2,'linewidth',1.5)
     
     drawnow
     
@@ -124,12 +132,12 @@ if n == 2 && ploton
     figure(3); clf;
     surf(X1,X2,detdfdx,'edgecolor','none')
     set(gca,'xscale','log','yscale','log','zscale','linear')
-    xlabel('x_1')
-    ylabel('x_2')
-    zlabel('det(df/dx)')
+    xlabel('x_1 concentration []')
+    ylabel('x_2 concentration []')
+    zlabel('det(df/dx) []')
     hold on
     plot3(yout(1,end),yout(2,end),detpath(end),'kx',...
-        yout(1,1),yout(2,1),detpath(1),'k^',...
+        yout(1,1),yout(2,1),detpath(1),'ko',...
         yout(1,:),yout(2,:),detpath,'linewidth',3)
     xlim(10.^[x1min,x1max])
     ylim(10.^[x2min,x2max])

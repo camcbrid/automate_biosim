@@ -51,6 +51,19 @@ problem = createOptimProblem('fmincon','objective', ...
 ms = MultiStart;
 [x,fval,eflag,stats,sols] = run(ms,problem,20);
 
+numsols = length(sols);
+[X{1:numsols}] = deal(sols.X);
+[Fval{1:numsols}] = deal(sols.Fval);
+
+y = cell2mat(X);
+%Jacobian at each solution point
+dfdx = cell(0);
+for ii = 1:numsols
+    dfdx{ii} = dynamicsbio_jac(0,y(:,ii),funs,u,1,1);
+    disp(dfdx{ii})
+    disp(det(dfdx{ii}))
+end
+
 %output data
 output.x = x;
 output.fval = fval;
@@ -58,21 +71,9 @@ output.flg = eflag;
 output.stats = stats;
 output.solutions = sols;
 output.p = p;
-
-numsols = length(output.solutions);
-[X{1:numsols}] = deal(output.solutions.X);
-[Fval{1:numsols}] = deal(output.solutions.Fval);
+output.dfdx = dfdx;
 
 toc
-
-y = cell2mat(X);
-%Jacobian at each solution point
-J = cell(0);
-for ii = 1:numsols
-    J{ii} = dynamicsbio_jac(0,y(:,ii),funs,u,1,1);
-    disp(J{ii})
-    disp(det(J{ii}))
-end
 
 %plot
 if ploton
@@ -82,8 +83,9 @@ if ploton
     h1 = plot3(y(1,:),y(2,:),y(3,:),'o');
     set(gca,'xscale','log','yscale','log','zscale','log')
     title('State space')
-    xlabel('x_1')
-    ylabel('x_2')
+    xlabel('x_1 concentration [nM]')
+    ylabel('x_2 concentration [nM]')
+    zlabel('x_3 concentration [nM]')
     set(h1,'linewidth',1.5)
     
     drawnow

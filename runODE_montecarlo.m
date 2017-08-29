@@ -25,6 +25,7 @@ end
 
 %settings
 addpath utility parameters
+ploton = true;      %create a figure
 pfun = @(A) params_dist(A);%parameter function handle
 tfinal = 1000;      %simulate from 0 to tfinal
 umax = 10;          %sweep through inputs from 0 to umax with a trianglewave input
@@ -75,7 +76,7 @@ if ploton
     semilogy(real(yfinal'),'.')
     ylim([1e-4,inf])
     xlabel('simulation number')
-    ylabel('state concentrations')
+    ylabel('state concentrations [nM]')
     title([strrep(sysname,'_',' '),', n = ',num2str(n)])
     
     %plot histogram
@@ -87,12 +88,12 @@ if ploton
     end
     hold off;
     ylabel('Frequency')
-    xlabel('log_{10}(steady state concentration)')
+    xlabel('log_{10}(steady state concentration) [log_{10}(nM)]')
     
     %save settings and output
     if saveon
         savefile = [strrep(sysname,' ','_'),'_MC_n',num2str(n),'_q',num2str(q)];
-        cd figs
+        cd figures
         savefig(fig,[savefile,'_MC.fig']);
         cd ..
         cd output
