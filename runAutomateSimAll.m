@@ -39,6 +39,8 @@ disp('ODE_mulambda')
 outmulambda = runODE_mulambda(A,pfun,u);
 disp('Monte Carlo')
 outMC = runODE_montecarlo(A,sysname,q,false);
+disp('LHS')
+outLHS = runLHS_static(A,q,u);
 
 %output
 dataout = struct;
@@ -48,12 +50,13 @@ dataout.sweep = outsweep;
 dataout.fsolve = outfsolve;
 dataout.mulambda = outmulambda;
 dataout.MC = outMC;
+dataout.LHS = outLHS;
 
 cd output
 filename = [sysname,'_n',num2str(n),'_allsimout'];
 save([filename,'.mat'],'dataout','A','u','urng','pfun','q','sysname')
 cd figs
-for ii = 1:8
+for ii = 1:9
     if ishandle(ii)
         fig = figure(ii);
         savefig(fig,[filename,num2str(ii),'.fig'])
