@@ -132,8 +132,8 @@ if n == 2 && ploton
     figure(3); clf;
     surf(X1,X2,detdfdx,'edgecolor','none')
     set(gca,'xscale','log','yscale','log','zscale','linear')
-    xlabel('x_1 concentration []')
-    ylabel('x_2 concentration []')
+    xlabel('x_1 concentration [nM]')
+    ylabel('x_2 concentration [nM]')
     zlabel('det(df/dx) []')
     hold on
     plot3(yout(1,end),yout(2,end),detpath(end),'kx',...
