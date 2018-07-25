@@ -31,8 +31,6 @@ k3rng = [270,270];      % [/hr] catalytic rate of degradation by protease
 Ptotrng = [0,0];        % [nM] total amount of protease
 K3rng = log10([1200,1200]);    % [nM] protein with protease binding constant
 
-
-
 %setup
 B = (A ~= 0);               %logical adjacency matrix
 nodevec = [0,cumsum(sum(B,1))]; %indicies of nodes in the edge counter
@@ -163,7 +161,7 @@ end
 
 %create sample
 if strcmp(scale,'log')
-    out = 10.^(p_rng(1) + (p_rng(2) - p_rng(1)).*lhsweight(:)');
+    out = 10.^(min(p_rng) + (max(p_rng) - min(p_rng)).*lhsweight(:)');
 else
-    out = p_rng(1) + (p_rng(2) - p_rng(1)).*lhsweight(:)';
+    out = min(p_rng) + (max(p_rng) - min(p_rng)).*lhsweight(:)';
 end

@@ -1,4 +1,5 @@
-function [p,prng] = params_dist(A,uniformon)
+function [p, prng] = params_dist(A, uniformon)
+%[P, PRNG] = params_dist(A, UNIFORMON)
 %assign parameters for production to each edge and degradation parameters
 %for each protein. Takes in the weighted adacjency matrix, outputs
 %parameter struct for functions h, g, a, and L to be used by makefuns.m
@@ -11,6 +12,16 @@ if nargin < 2
         error('not enough inputs')
     end
 end
+%if A is a cell array of adjacency matricies, apply params_dist to each one
+if iscell(A)
+    p = cell(0);
+    prng = cell(0);
+    for i = 1:length(A)
+        [p{i},prng{i}] = params_dist(A{i});
+    end
+    return
+end
+
 
 %set the ranges for each parameter
 k1rng = [195,275];      % [/hr] rate of transcription (195 to 275)
@@ -22,7 +33,7 @@ RNAPrng = [500,2000];   % [nM] total concentration of RNAP (2000 to 10000)
 Riborng = [100,1000];   % [nM] total concentration of ribosomes (5800)
 nrng = [1,3];           % [] coopertivity (1-3)
 %powers of 10
-K0rng = [1,4];          % [nM] binding TF with DNA promoter constant ()??
+K0rng = [2,4];          % [nM] binding TF with DNA promoter constant ()??
 K1rng = [3,6];          % [nM] binding RNAP to DNA promoter constant (150-2000)
 Kprng = [3,6];          % [nM] basal RNAP/promoter binding constant (150-560)
 K2rng = [3,6];          % [nM] mRNA with ribosome binding constant (~10^4)
@@ -32,13 +43,13 @@ Ptotrng = [0,0];        % [nM] total amount of protease
 K3rng = log10([1200,1200]);    % [nM] protein with protease binding constant
 
 
-
 %setup
 B = (A ~= 0);               %logical adjacency matrix
 nodevec = [0,cumsum(sum(B,1))]; %indicies of nodes in the edge counter
 indvec = sum(B,1);          %number of incoming connections to node i
 n = min(size(A));           %number of nodes
-m = sum(B(A ~= 0));         %number of edges
+m = sum(B(A ~= 0));        %number of edges
+m2 = sum(~(any(A(1:n,1:n),2) | any(A(1:n,1:n),1)'));  %number of constitutive nodes
 k = 1;                      %init node counter
 edge_weights = A(A ~= 0);   %extract weighting of each edge
 
@@ -94,7 +105,7 @@ hparams.J = p.DNA./p.Kp.*(1+p.k1*p.RNAP./(p.K2*p.delta1));
 %leakiness
 hparams.T = p.k2*p.k1*p.RNAP*p.Ribo*p.DNA./(p.Kp.*p.K2.*p.delta1);
 %coopertivitity
-hparams.n = p.s;
+hparams.s = p.s;
 %loop through each edge
 for ii = 1:m
     if edge_weights(ii) > 0
@@ -140,6 +151,7 @@ gparams.K = p.K3;       %binding constant for each node
 p.delta = p.delta2;     %dilution rate constant
 p.n = n;                %number of nodes
 p.m = m;                %number of edges
+p.m2 = m2;              %number of constituitve nodes
 p.h = hparams;          %production parameter struct
 p.a = hparams;          %production resource sharing struct
 p.g = gparams;          %degradation resource sharing struct
@@ -177,13 +189,13 @@ if strcmp(distname,'norm')
     mu = mean(p_rng);
     sigma = (max(p_rng) - min(p_rng))/3;
     out = normrnd(mu,sigma,[1,n]);
-    out(out <= 0) = 1e-4;
+    out(out <= 0) = 1;
 elseif strcmp(distname,'logn')
     %lognormal distribution (input range is log10(range))
     mu = mean(log(10.^p_rng));
     sigma = (log(10^(max(p_rng) - min(p_rng))))/3;
     out = lognrnd(mu,sigma,[1,n]);
-    out(out <= 0) = 1e-4;
+    out(out <= 0) = 1;
 elseif strcmp(distname,'unif')
     %uniform distribution
     out = min(p_rng) + (max(p_rng) - min(p_rng))*rand(1,n);
@@ -191,5 +203,5 @@ else
     mu = mean(p_rng);
     sigma = (max(p_rng) - min(p_rng))/3;
     out = random(distname,mu,sigma,[1,n]);
-    out(out <= 0) = 1e-4;
+    out(out <= 0) = 1;
 end

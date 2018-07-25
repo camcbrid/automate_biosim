@@ -1,11 +1,22 @@
-function [dz,Jout] = dynamicsbio_static(~,z,funs,u,mu,lambda)
-%simulate bio process with Hill function kinetics (simplified) with
-%constant input, u
+function [dz, Jout] = dynamicsbio_static(t, z, funs, u, mu, lambda)
+%[DZ, JOUT] = dynamicsbio_static(T, Z, FUNS, U, MU, LAMBDA)
+%Simulate bio process with Hill function kinetics (simplified) with
+%constant input, u.
+%
+%T is the time input, Z is the state vector, FUNS is the struct of function
+%handles returned by makefuns.m, U is the external input, MU is a parameter
+%\in [0,1] controlling production resource sharing, and LAMBDA is a
+%parameter \geq 0 controlling degradation resource sharing. DZ is the
+%time derivative of the system evalulated at the state Z. J is the Jacobian
+%of the system evalulated at the state Z. If the fields hJ, gJ, and aJ are
+%not present in FUNS or if FUNS.a is non-scalar, J is returned as a matrix
+%of zeros.
 
+%defaults
 if nargin < 5
-    mu = 1;             %turn on production resource sharing [0,1]
+    mu = 1;
     if nargin < 6
-        lambda = 1;     %turn on degradation resource sharing [0,1]
+        lambda = 1;
     end
 end
 

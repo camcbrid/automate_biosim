@@ -3,7 +3,7 @@
 %fsolve: find one equilibrium point
 %fmincon: find multiple equilibria using fmincon and MultiSearch
 %ODE_static: simulate system with constant external input
-%ODE_sweep: simulate system sweeping external input with a range
+%ODE_sweep: simulate system sweeping external input within a range
 %ODE_mulambda: simulate system varying resource sharing terms
 %ODE_montecarlo: run Monte Carlo simulation for parameter distribution to
 %find eq pt distribution

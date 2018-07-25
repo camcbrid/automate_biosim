@@ -1,7 +1,11 @@
 function p = paramsARosc(A)
-%assign parameters for production to each edge and degradation parameters
+%P = paramsARosc(A)
+%Assign parameters for production to each edge and degradation parameters
 %for each protein. Takes in the weighted adacjency matrix, outputs
 %parameter struct for functions h, g, a, and L to be used by makefuns.m
+%Has specific parameters that enable the functioning of the
+%activator-repressior oscillator (Hasty) when given the adjacency matrix:
+%A = [-1,-1; 1,1] and u = 0.
 
 %defaults
 if ~exist('A','var')
@@ -29,7 +33,7 @@ hparams.J = [0,0];
 %leakiness
 hparams.T = [20,2];
 %coopertivitity
-hparams.n = p.s;
+hparams.s = p.s;
 %loop through each edge
 hparams.a = [10,1,10,1];
 hparams.b = [1,10,1,10];

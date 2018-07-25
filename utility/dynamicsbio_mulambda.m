@@ -1,4 +1,16 @@
-function [dz,Jout] = dynamicsbio_mulambda(t,z,funs,u,tfinal)
+function [dz, Jout] = dynamicsbio_mulambda(t, z, funs, u, tfinal)
+%[DZ, JOUT] = dynamicsbio_mulambda(T, Z, FUNS, U, TFINAL)
+%Returns derivative for bio system with dynamics given by FUNS by slowly
+%sweeping from (MU,LAMBDA) = (0,0) to (MU,LAMBDA) = (1,1).
+%
+%T is the time input, Z is the state vector, FUNS is the struct of function
+%handles returned by makefuns.m, U is the external input, MU is a parameter
+%\in [0,1] controlling production resource sharing, and LAMBDA is a
+%parameter \geq 0 controlling degradation resource sharing. DZ is the
+%time derivative of the system evalulated at the state Z. J is the Jacobian
+%of the system evalulated at the state Z. If the fields hJ, gJ, and aJ are
+%not present in FUNS or if FUNS.a is non-scalar, J is returned as a matrix
+%of zeros.
 
 %dynamics functions
 h = funs.h;     %production

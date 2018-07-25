@@ -1,7 +1,11 @@
 function p = paramsRepCasc(A)
-%assign parameters for production to each edge and degradation parameters
+%P = paramsRepCasc(A)
+%Assign parameters for production to each edge and degradation parameters
 %for each protein. Takes in the weighted adacjency matrix, outputs
-%parameter struct for functions h, g, a, and L to be used by makefuns.m
+%parameter struct for functions h, g, a, and L to be used by makefuns.m.
+%Has specific parameters that enable multiple equilibrium points in the
+%repression cascade with resource sharing when given the adjacency matrix:
+%A = [0,-1; 0,0; -1,0] and u is swept from 86 to 94.
 
 %defaults
 if ~exist('A','var')
@@ -26,7 +30,6 @@ p.K2 = [10000,1000];    %mRNA/ribosome binding cnst
 p.K3 = [1200,1200];     %protein/protease binding cnst
 p.s = [1,4];            %coopertivity
 
-
 %setup
 B = (A ~= 0);               %logical adjacency matrix
 indvec = cumsum(sum(B,1));  %indicies of nodes in the edge counter
@@ -42,7 +45,7 @@ hparams.J = p.DNA./p.Kp.*(1+p.k1*p.RNAP./(p.K2*p.delta1));
 %leakiness
 hparams.T = p.k2*p.k1*p.RNAP*p.Ribo*p.DNA./(p.Kp.*p.K2.*p.delta1);
 %coopertivitity
-hparams.n = p.s;
+hparams.s = p.s;
 %loop through each edge
 for ii = 1:m
     if edge_weights(ii) > 0

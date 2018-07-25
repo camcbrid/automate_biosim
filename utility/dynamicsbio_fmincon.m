@@ -1,7 +1,16 @@
-function [y,grad] = dynamicsbio_fmincon(t,z,funs,u,mu,lambda)
-%simulate bio process with Hill function kinetics (simplified) with
-%constant input, u
+function [y, grad] = dynamicsbio_fmincon(t, z, funs, u, mu, lambda)
+%[Y, GRAD] = dynamicsbio_fmincon(T, Z, FUNS, U, MU, LAMBDA)
+%Simulate bio process with Hill function kinetics (simplified) with
+%constant input, u for solving for the equilibrium point(s) using fmincon.
 
+%T is the time input, Z is the state vector, FUNS is the
+%struct of function handles returned by makefuns.m, U is the external
+%input, MU is a parameter \in [0,1] controlling production resource
+%sharing, and LAMBDA is a parameter \geq 0 controlling degradation resource
+%sharing. Y is the sum squared value of the derivative vector DZ and
+%GRAD is the gradient of Y with respect to the state vector Z.
+
+%defaults
 if nargin < 5
     mu = 1;             %turn on production resource sharing [0,1]
     if nargin < 6

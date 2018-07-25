@@ -1,5 +1,14 @@
-function J = dynamicsbio_jac(t,z,funs,u,mu,lambda)
-%output Jacobian matrix for system with constant input, u
+function J = dynamicsbio_jac(t, z, funs, u, mu, lambda)
+%J = dynamicsbio_jac(T, Z, FUNS, U, MU, LAMBDA)
+%Output Jacobian matrix for system with constant input, u. 
+
+%T is the time input, Z is the state vector, FUNS is the struct of function
+%handles returned by makefuns.m, U is the external input, MU is a parameter
+%\in [0,1] controlling production resource sharing, and LAMBDA is a 
+%parameter \geq 0 controlling degradation resource sharing. J is the 
+%Jacobian of the system evalulated at the state Z. If the fields hJ, gJ, 
+%and aJ are not present in FUNS or if funs.a is non-scalar, J is returned 
+%as a matrix of zeros.
 
 %defaults
 if nargin < 5

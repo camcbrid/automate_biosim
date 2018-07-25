@@ -1,31 +1,34 @@
-function [funs,p] = makefuns(A,parafun)
-%make function handles for production, resource sharing, and degradation
-%dynamics. Can be used in runbio.m run by ode15s to run dynamics of a
-%protein system with QSS assumption. Inputs are adjacency matrix and
-%parameter function that output parameter struct and takes adjacency matrix
-%as input. Also returns parameters in a struct used for debugging
+function [funs, p] = makefuns(A, pfun)
+%[FUNS, P] = makefuns(A, PFUN)
+%Make function handles for production, resource sharing, and degradation
+%dynamics. Can be used by ode15s to run dynamics with dynamicsbio*.m 
+%simulating a protein system with QSS assumption.
+%
+%A is the adjacency matrix and PFUN is a function that take the adjacency
+%matrix as input and returns a struct of parameters or PFUN may be a struct
+%of parameters. FUNS is the function handles created for the dynamics and
+%P is the struct of parameters used in those function handles.
 
 %defaults
 if nargin < 2
-    parafun = @params_dist;
+    pfun = @params_dist;
     if nargin < 1
         error('not enough inputs')
     end
 end
 
 %create parameter struct, either randomly or set individual parameters
-if isa(parafun,'function_handle')
-    p = parafun(A);
-elseif isstruct(parafun)
-    p = parafun;
+if isa(pfun,'function_handle')
+    p = pfun(A);
+elseif isstruct(pfun)
+    p = pfun;
 end
 %number of nodes
 n = min(size(A));
 %dilution matrix
-if length(p.delta) == 1
-    L = diag(p.delta*ones(n,1));
-else
-    L = diag(p.delta);
+if length(p.delta2) == 1
+    L = diag(p.delta2*ones(n,1));
+else; L = diag(p.delta2);
 end
 %function handles for dynamics
 funs = struct;
@@ -34,7 +37,7 @@ funs.a = @(x,u) afun(x,p.a,u,A);        %production resource sharing
 funs.g = @(x) gfun(x,p.g);              %degradation including resource sharing
 funs.L = L;                             %dilution matrix
 funs.f = @(x,u,mu,lambda) hfun(x,p.h,u,A).*((afun(x,p.a,u,A) - ones(size(x)))*mu + ...
-    ones(size(x))) + lambda*gfun(x,p.g) - L*x;  %complete dynamics
+    ones(size(x))) + lambda*gfun(x,p.g) - L*x;      %complete dynamics
 %Jacobians
 funs.hJ = @(x,u) hJfun(x,p.h,u,A);      %production function Jacobian
 funs.aJ = @(x,u) aJfun(x,p.a,u,A);      %production resource sharing Jacobian (vector)
@@ -43,15 +46,14 @@ funs.J = @(x,u,mu,lambda) hJfun(x,p.h,u,A).*kron((afun(x,p.a,u,A) - ...
     ones(length(x),1))*mu + ones(length(x),1),ones(size(x))') + ...
     mu*kron(hfun(x,p.h,u,A),aJfun(x,p.a,u,A)) + lambda*gfun(x,p.g) - L; %Jacobian
 %helper functions
-funs.F = @(x,a,b,n) F2(x,a,b,n);                %Hill function
-funs.Fp = @(x,a,b,s,n,inds) Fp2(x,a,b,s,n,inds);%Hill function derivative w/r/t all states
+funs.F = @(x,a,b,s) HillF(x,a,b,s);                %Hill fcn
+funs.Fp = @(x,a,b,s,n,inds) HillFp(x,a,b,s,n,inds);%Hill fcn derivative w/r/t all states
 funs.makeU = @(x,u,A) makeU(x,A,u);             %create inputs for each node
 funs.combineFU = @(U,p,A) combineFU(U,p,A);     %evalulate Hill functions at U's
 funs.combineFpU = @(U,p,A,inds) combineFpU(U,p,A,inds); %eval Hill fcn derivatives
 
 
-
-function out = hfun(x,p,u,A)
+function out = hfun(x, p, u, A)
 %make h function representing production and accounting for resource
 %sharing of RNAP and ribosomes
 
@@ -66,8 +68,7 @@ out = cell2mat(cellfun(@(a,b) a.*b, num2cell(p.T(:)), Fout(:),...
     'UniformOutput',false));
 
 
-
-function out = afun(x,p,u,A)
+function out = afun(x, p, u, A)
 %make alpha function for resource sharing terms
 
 %make adjacency matrix all ones and zeros
@@ -83,8 +84,7 @@ normvec = cell2mat(cellfun(@(x,y) x.*y, num2cell(p.J(:)), Fout(:),...
 out = 1./(1+sum(normvec));
 
 
-
-function out = gfun(x,p)
+function out = gfun(x, p)
 %make degradation function. Outputs a vector with same size as x. x is the
 %state vector, p is the parameter struct for degradation, and A is the
 %adacency matrix. Degradation applies to all proteins with this model
@@ -102,13 +102,11 @@ end
 out = -k*P*xnorm./(1 + sum(xnorm,1));
 
 
-
-function [U,inds] = makeU(x,A,u)
+function [U,inds] = makeU(x, A, u)
 %creates the input array, U. x is the state vector, A is the adacency
 %matrix, and u is the external input
 if nargin < 3
-    u = 0;
-    error('need external input, u')
+    error('missing external input, u')
 end
 %init
 inds = cell(0);
@@ -139,16 +137,17 @@ for q = 1:n
 end
 
 
-
-function Fout = combineFU(U,p,A)
+function Fout = combineFU(U, p, A)
 %creates Hill function handles and evalulates each at the input point, U. U
 %is the input set (cell array of states), p is the parameter struct for
 %production, and A is the adjacency matrix.
 
 %parameters
-a = p.a;            %numerator parameters
-b = p.b;            %denominator parameters
-s = p.n;            %coopertivity
+if all(isfield(p,{'a','b'}))
+    a = p.a;            %numerator parameters
+    b = p.b;            %denominator parameters
+end
+s = p.s;            %coopertivity
 n = min(size(A));   %number of nodes
 invec = sum(A,1)';  %out degree
 %init
@@ -158,7 +157,7 @@ Fout = cell(0);
 for ii = 1:n
     if invec(ii) >= 1
         %n inputs to node i
-        F{ii} = @(x) F2(x,a(k:k+invec(ii)-1),b(k:k+invec(ii)-1),s(k:k+invec(ii)-1));
+        F{ii} = @(x) HillF(x,a(k:k+invec(ii)-1),b(k:k+invec(ii)-1),s(k:k+invec(ii)-1));
         k = k + invec(ii);
     else
         %constant output if no input
@@ -169,8 +168,7 @@ for ii = 1:n
 end
 
 
-
-function out = F2(x,a,b,n)
+function out = HillF(x, a, b, s)
 %make generic Hill function ignoring combinatoral promoter binding.
 %x is the input vector, a is the Hill function numerator parameter vector
 %(cell array), b is the Hill function denominator parameter vector (cell
@@ -181,15 +179,14 @@ numvec = zeros(size(x));
 denvec = zeros(size(x));
 %loop through each input,x
 for ii = 1:size(x,1)
-    numvec(ii,:) = a(ii)*x(ii,:).^n(ii);
-    denvec(ii,:) = b(ii)*x(ii,:).^n(ii);
+    numvec(ii,:) = a(ii)*x(ii,:).^s(ii);
+    denvec(ii,:) = b(ii)*x(ii,:).^s(ii);
 end
 %Hill function output
 out = (1+sum(numvec,1))./(1+sum(denvec,1));
 
 
-
-function out = hJfun(x,p,u,A)
+function out = hJfun(x, p, u, A)
 %make Jacobian dh/dx for nominal protein production without resources
 %sharing
 
@@ -203,8 +200,7 @@ Fpout = combineFpU(U,p,A,inds);
 out = p.T(:).*Fpout;
 
 
-
-function out = aJfun(x,p,u,A)
+function out = aJfun(x, p, u, A)
 %make Jacobian da/dx for resource sharing terms (vector)
 
 %make adjacency matrix all ones and zeros
@@ -221,8 +217,7 @@ normvec = cell2mat(cellfun(@(x,y) x.*y, num2cell(p.J(:)), Fout(:),...
 out = - sum(p.J(:).*Fpout,1)/(1 + sum(normvec,1)).^2;
 
 
-
-function out = gJfun(x,p,A)
+function out = gJfun(x, p, A)
 %make the Jacobian dg/dx of the degradation function
 
 A = (A ~= 0);       %make adjacency matrix all ones and zeros
@@ -246,8 +241,7 @@ C = kron(xnorm,Knorm');             %rest of entries (complete)
 out = -k*Ptot*(B - C)./(den.^2);    %dg/dx
 
 
-
-function out = Fp2(x,a,b,s,n,inds)
+function out = HillFp(x, a, b, s, n, inds)
 %make Hill function derivative output vector. Returns a vector of the
 %derivative with respect to each input. x is the input state vector, a is
 %the Hill function numerator parameter vector (cell array), b is the Hill
@@ -276,8 +270,7 @@ end
 out(inds) = vals;
 
 
-
-function Fpout = combineFpU(U,p,A,inds)
+function Fpout = combineFpU(U, p, A, inds)
 %creates derivative of Hill function handles and evalulates each at the
 %input point, U. U is the input set (cell array of states), p is the
 %parameter struct for production, A is the adjacency matrix, and inds is
@@ -290,9 +283,11 @@ k = 1;                      %counter for edges
 Fpout = zeros(n);           %Jacobian dh/dx
 inds2 = cell(0);            %index vector without external inputs
 %parameters
-a = p.a;
-b = p.b;
-s = p.n;
+if all(isfield(p,{'a','b'}))
+    a = p.a;
+    b = p.b;
+end
+s = p.s;
 %derivative of hill functions
 Fp = cell(0);
 %Hill functions
@@ -302,7 +297,7 @@ for ii = 1:n
         %if there are some inputs from other states
         numext = sum(inds{ii} > n); %number of external inputs to node ii
         %row in the Jacobian
-        Fp{ii} = @(x) Fp2(x,a(k:k+invec(ii)-1-numext),b(k:k+invec(ii)-1-...
+        Fp{ii} = @(x) HillFp(x,a(k:k+invec(ii)-1-numext),b(k:k+invec(ii)-1-...
             numext),s(k:k+invec(ii)-1-numext),n,inds2{ii});
     else
         %only input is external to node ii
